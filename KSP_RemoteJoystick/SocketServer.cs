@@ -13,8 +13,8 @@ namespace KSP_RemoteJoystick
     class SocketServer
     {
         public bool listening = false;
-        public bool hasClient { get { return listening && clients.Any((s) => (s != null && s.Connected)); } }
-        private List<Socket> clients = new List<Socket>();
+        public bool hasClient { get { return listening && clients.Any((s) => (s != null && s.idleTime < s.maxIdleTime)); } }
+        private List<TimedSocketClient> clients = new List<TimedSocketClient>();
 
         public byte[] dataToSend = new byte[0];
         public byte[] dataReceived = new byte[0];
@@ -68,7 +68,7 @@ namespace KSP_RemoteJoystick
                 {
                     _socket.Close();
                 }
-                clients = new List<Socket>();
+                clients = new List<TimedSocketClient>();
                 //1.0 实例化套接字(IP4寻找协议,流式协议,TCP协议)
                 _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 //2.0 创建IP对象
@@ -91,7 +91,7 @@ namespace KSP_RemoteJoystick
             }
         }
 
-        public void Update()
+        public void Update(float deltaTime)
         {
             if (listening)
             {
@@ -104,22 +104,28 @@ namespace KSP_RemoteJoystick
                             try
                             {
                                 //获取从客户端发来的数据
-                                if (clientSocket.Available > 0)
+                                if (clientSocket.client.Available > 0)
                                 {
-                                    int length = clientSocket.Receive(buffer);
+                                    clientSocket.idleTime = 0;
+
+                                    int length = clientSocket.client.Receive(buffer);
                                     //var msg = Encoding.ASCII.GetString(buffer, 0, length);//no other char
                                     var bytes = new byte[length];
                                     Array.ConstrainedCopy(buffer, 0, bytes, 0, length);
                                     //ConnectionInitializer.Log(msg);
-                                    Debug.Log(string.Format("from{0},length{1},message:{2}", clientSocket.RemoteEndPoint.ToString(), bytes.Length, bytes.ToString()));
+                                    Debug.Log(string.Format("from{0},length{1},message:{2}", clientSocket.client.RemoteEndPoint.ToString(), bytes.Length, bytes.ToString()));
                                     dataReceived = bytes;
 
 
                                     //如果收到了就发送回信，客户端控制频率
                                     if (dataToSend != null && dataToSend.Length > 0)
                                     {
-                                        clientSocket.Send(dataToSend);
+                                        clientSocket.client.Send(dataToSend);
                                     }
+                                }
+                                else
+                                {
+                                    clientSocket.idleTime += deltaTime;
                                 }
                             }
                             catch (Exception ex)
@@ -154,12 +160,25 @@ namespace KSP_RemoteJoystick
                     clientSocket.Send(initialData);
                     lock (locker)
                     {
-                        clients.Add(clientSocket);
+                        clients.Add(new TimedSocketClient(clientSocket));
                     }
                 }
             }
             catch (Exception)
             {
+            }
+        }
+
+        class TimedSocketClient
+        {
+            public Socket client;
+            public float idleTime;
+            public float maxIdleTime;
+            public TimedSocketClient(Socket client, float closeTime = 1f)
+            {
+                this.client = client;
+                this.idleTime = 0;
+                this.maxIdleTime = closeTime;
             }
         }
     }

@@ -80,20 +80,17 @@ namespace KSP_RemoteJoystick
                 var rotY = BitConverter.GetBytes((ushort)Mathf.RoundToInt((rotation.y + 1) / 2 * 65535));
                 var rotZ = BitConverter.GetBytes((ushort)Mathf.RoundToInt((rotation.z + 1) / 2 * 65535));
                 var rotW = BitConverter.GetBytes((ushort)Mathf.RoundToInt((rotation.w + 1) / 2 * 65535));
-                Debug.Log(string.Format("parsed{0}-X:{1}", rotation, Mathf.RoundToInt((rotation.x + 1) / 2 * 65535)));
-                byte flags = 0;
-                if (SAS) flags |= ByteMask(0);
-                if (RCS) flags |= ByteMask(1);
-                if (brake) flags |= ByteMask(2);
-                if (light) flags |= ByteMask(3);
-                if (gear) flags |= ByteMask(4);
+                //Debug.Log(string.Format("parsed{0}-X:{1}", rotation, Mathf.RoundToInt((rotation.x + 1) / 2 * 65535)));
 
-                //return new byte[] {
-                //    pitchb[0], pitchb[1],
-                //    rollb[0], rollb[1],
-                //    hdgb[0], hdgb[1],
-                //    srfVelb[0], srfVelb[1], srfVelb[2], srfVelb[3]
-                //};
+                var lon = BitConverter.GetBytes((uint)Math.Round((longitude / 360 + 0.5) * uint.MaxValue));
+                var lat = BitConverter.GetBytes((uint)Math.Round((latitude / 180 + 0.5) * uint.MaxValue));
+
+                //byte flags = 0;
+                //if (SAS) flags |= ByteMask(0);
+                //if (RCS) flags |= ByteMask(1);
+                //if (brake) flags |= ByteMask(2);
+                //if (light) flags |= ByteMask(3);
+                //if (gear) flags |= ByteMask(4);
                 return new byte[] {
                     velX[0], velX[1], velX[2], velX[3],//0-3
                     velY[0], velY[1], velY[2], velY[3],//4-7
@@ -102,7 +99,9 @@ namespace KSP_RemoteJoystick
                     rotY[0], rotY[1],//14 15
                     rotZ[0], rotZ[1],//16 17
                     rotW[0], rotW[1],//18 19
-                    flags,//20
+                    lon[0], lon[1], lon[2], lon[3],//20-23
+                    lat[0], lat[1], lat[2], lat[3],//24-27
+                    //flags,//20
                 };
             }
             public static implicit operator byte[](ServerSideSocketData data)
@@ -111,11 +110,13 @@ namespace KSP_RemoteJoystick
             }
             public Vector3 srfVel;
             public Quaternion rotation;
-            public bool SAS;
-            public bool RCS;
-            public bool brake;
-            public bool light;
-            public bool gear;
+            public double longitude;
+            public double latitude;
+            //public bool SAS;
+            //public bool RCS;
+            //public bool brake;
+            //public bool light;
+            //public bool gear;
         }
 
         public class ServerSideInitialData
@@ -133,6 +134,7 @@ namespace KSP_RemoteJoystick
                 if (brake) flags |= ByteMask(2);
                 if (light) flags |= ByteMask(3);
                 if (gear) flags |= ByteMask(4);
+                if (stage) flags |= ByteMask(5);
                 return new byte[] { throttleb, flags };
             }
             public static implicit operator byte[] (ServerSideInitialData data)
@@ -145,6 +147,7 @@ namespace KSP_RemoteJoystick
             public bool brake;
             public bool light;
             public bool gear;
+            public bool stage;
         }
 
         static byte ByteMask(int pos)

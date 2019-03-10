@@ -1,5 +1,6 @@
 ﻿using KSP.UI.Screens;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,27 +13,29 @@ namespace KSP_RemoteJoystick
     {
         static bool isOn;
 
-        bool HasAddedButton;
-        ApplicationLauncherButton launcherButton;
+        static bool HasAddedButton;
+        static ApplicationLauncherButton launcherButton;
         SocketServer server;
         ushort port = 23333;
 
         Vessel targetVessel;
         SocketDataParser.ClientSideSocketData lastReceivedData; 
 
-        Texture2D texEnabled;
-        Texture2D texDisabled;
+        Texture2D texIdle;
+        Texture2D texWaiting;
+        Texture2D texWorking;
 
         bool stage_;
 
         void Start()
         {
+            texIdle = GameDatabase.Instance.GetTexture("RemoteJoystick/Textures/icon_idle", false);
+            texWaiting = GameDatabase.Instance.GetTexture("RemoteJoystick/Textures/icon_waiting", false);
+            texWorking = GameDatabase.Instance.GetTexture("RemoteJoystick/Textures/icon_working", false);
             if (!HasAddedButton)
             {
-                texEnabled = GameDatabase.Instance.GetTexture("RemoteJoystick/Textures/icon_", false);
-                texDisabled = GameDatabase.Instance.GetTexture("RemoteJoystick/Textures/icon", false);
                 launcherButton = ApplicationLauncher.Instance.AddModApplication(Enabled, Disabled, null, null, null, null,
-                    ApplicationLauncher.AppScenes.FLIGHT, texDisabled);
+                    ApplicationLauncher.AppScenes.FLIGHT, texIdle);
                 launcherButton.onRightClick = RightClick;
                 HasAddedButton = true;
             }
@@ -42,12 +45,28 @@ namespace KSP_RemoteJoystick
             }
             
             CheckStatus();
+            StartCoroutine(CheckTexLoop());
         }
 
         void OnDestroy()
         {
             if(server != null) {
                 server.Close();
+            }
+        }
+
+        void OnAutopilot(FlightCtrlState s)
+        {
+            if (!targetVessel.ActionGroups.GetGroup(KSPActionGroup.SAS)) {
+                ApplyControl(s);
+            }
+        }
+
+        void OnFlyByWire(FlightCtrlState s)
+        {
+            if (targetVessel.ActionGroups.GetGroup(KSPActionGroup.SAS))
+            {
+                ApplyControl(s);
             }
         }
 
@@ -91,17 +110,19 @@ namespace KSP_RemoteJoystick
                     }
                     else
                     {
-                        targetVessel.OnPreAutopilotUpdate -= ApplyControl;
+                        targetVessel.OnPostAutopilotUpdate -= OnAutopilot;
+                        targetVessel.OnFlyByWire -= OnFlyByWire;
                     }
                     targetVessel = activeVessel;
-                    targetVessel.OnPreAutopilotUpdate += ApplyControl;
+                    targetVessel.OnPostAutopilotUpdate += OnAutopilot;
+                    targetVessel.OnFlyByWire += OnFlyByWire;
                 }
             }
         }
 
         void FixedUpdate()
         {
-            server.Update();
+            server.Update(Time.fixedDeltaTime);
             HandleDataReceived();
             UpdateDataToSend();
             UpdateInitialData();
@@ -123,10 +144,19 @@ namespace KSP_RemoteJoystick
             var data = new SocketDataParser.ServerSideSocketData();
             if (targetVessel != null)
             {
-                data.srfVel = (Vector3)targetVessel.srf_velocity;
-                data.rotation = targetVessel.srfRelRotation;
-                var up = targetVessel.mainBody.GetSurfaceNVector(targetVessel.latitude, targetVessel.longitude);
-                //data.SAS = vessel.ctrlState.
+                data.longitude = targetVessel.longitude;
+                data.latitude = targetVessel.latitude;
+                Vector3 up = targetVessel.mainBody.GetSurfaceNVector(targetVessel.latitude, targetVessel.longitude);
+                Vector3 northPole = new Vector3(0, 1, 0);
+                Vector3 west = Vector3.Cross(northPole, up);
+                Vector3 north = Vector3.Cross(up, west);
+                var rotationRef = Quaternion.LookRotation(north, up);
+                var rotationRefInv = Quaternion.Inverse(rotationRef);
+                var falseRotation = rotationRefInv * targetVessel.ReferenceTransform.rotation;
+                var trueForward = falseRotation * new Vector3(0, 1, 0);
+                var trueUp = falseRotation * new Vector3(0, 0, -1);
+                data.rotation = Quaternion.LookRotation(trueForward, trueUp);
+                data.srfVel = rotationRefInv * targetVessel.srf_velocity;
             }
 
             server.dataToSend = data;
@@ -141,6 +171,7 @@ namespace KSP_RemoteJoystick
             data.light = targetVessel.ActionGroups.GetGroup(KSPActionGroup.Light);
             data.gear = targetVessel.ActionGroups.GetGroup(KSPActionGroup.Gear);
             data.throttle = targetVessel.ctrlState.mainThrottle;
+            data.stage = stage_;
             server.initialData = data;
         }
 
@@ -154,7 +185,12 @@ namespace KSP_RemoteJoystick
             {
                 server.Close();
             }
-            launcherButton.SetTexture(isOn ? texEnabled : texDisabled);
+            CheckTex();
+        }
+
+        void CheckTex()
+        {
+            launcherButton.SetTexture(isOn ? server.hasClient ? texWorking : texWaiting : texIdle);
         }
 
         void RightClick()
@@ -166,12 +202,14 @@ namespace KSP_RemoteJoystick
 
         void Enabled()
         {
-            ScreenMessages.PostScreenMessage("RJ ui enabled", 3f, ScreenMessageStyle.UPPER_CENTER);
+            //ScreenMessages.PostScreenMessage("RJ ui enabled", 3f, ScreenMessageStyle.UPPER_CENTER);
+            ScreenMessages.PostScreenMessage("Rightclick to toggle", 5f, ScreenMessageStyle.UPPER_CENTER);
         }
 
         void Disabled()
         {
-            ScreenMessages.PostScreenMessage("RJ ui disabled", 3f, ScreenMessageStyle.UPPER_CENTER);
+            //ScreenMessages.PostScreenMessage("RJ ui disabled", 3f, ScreenMessageStyle.UPPER_CENTER);
+            ScreenMessages.PostScreenMessage("Rightclick to toggle", 5f, ScreenMessageStyle.UPPER_CENTER);
         }
 
         bool IsFlipped(ref bool stored, bool current)
@@ -182,6 +220,15 @@ namespace KSP_RemoteJoystick
                 return true;
             }
             return false;
+        }
+
+        IEnumerator CheckTexLoop()
+        {
+            while (true)
+            {
+                yield return new WaitForSeconds(2);
+                CheckTex();
+            }
         }
     }
 }
