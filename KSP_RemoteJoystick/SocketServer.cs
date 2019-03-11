@@ -99,7 +99,7 @@ namespace KSP_RemoteJoystick
                 {
                     foreach (var clientSocket in clients)
                     {
-                        if (clientSocket != null)
+                        if (clientSocket != null && clientSocket.client != null)
                         {
                             try
                             {
@@ -113,7 +113,7 @@ namespace KSP_RemoteJoystick
                                     var bytes = new byte[length];
                                     Array.ConstrainedCopy(buffer, 0, bytes, 0, length);
                                     //ConnectionInitializer.Log(msg);
-                                    Debug.Log(string.Format("from{0},length{1},message:{2}", clientSocket.client.RemoteEndPoint.ToString(), bytes.Length, bytes.ToString()));
+                                    //Debug.Log(string.Format("from{0},length{1},message:{2}", clientSocket.client.RemoteEndPoint.ToString(), bytes.Length, bytes.ToString()));
                                     dataReceived = bytes;
 
 
@@ -130,7 +130,7 @@ namespace KSP_RemoteJoystick
                             }
                             catch (Exception ex)
                             {
-                                Debug.LogError(ex.Message);
+                                Debug.LogError("Error when listening:" + ex.Message);
                                 try
                                 {
                                     //clientSocket.Shutdown(SocketShutdown.Both);
@@ -156,7 +156,7 @@ namespace KSP_RemoteJoystick
                 {
                     //Socket创建的新连接
                     Socket clientSocket = _socket.Accept();//阻塞直到连接
-                    Console.WriteLine("连接到新客户端" + clientSocket.RemoteEndPoint.ToString());
+                    Debug.Log("new client" + clientSocket.RemoteEndPoint.ToString());
                     clientSocket.Send(initialData);
                     lock (locker)
                     {
