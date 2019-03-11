@@ -85,6 +85,9 @@ namespace KSP_RemoteJoystick
                 var lon = BitConverter.GetBytes((uint)Math.Round((longitude / 360 + 0.5) * uint.MaxValue));
                 var lat = BitConverter.GetBytes((uint)Math.Round((latitude / 180 + 0.5) * uint.MaxValue));
 
+                var altSL = ((half)altitudeSealevel).GetBytes();
+                var altR = ((half)altitudeRadar).GetBytes();
+
                 //byte flags = 0;
                 //if (SAS) flags |= ByteMask(0);
                 //if (RCS) flags |= ByteMask(1);
@@ -101,7 +104,7 @@ namespace KSP_RemoteJoystick
                     rotW[0], rotW[1],//18 19
                     lon[0], lon[1], lon[2], lon[3],//20-23
                     lat[0], lat[1], lat[2], lat[3],//24-27
-                    //flags,//20
+                    
                 };
             }
             public static implicit operator byte[](ServerSideSocketData data)
@@ -112,6 +115,8 @@ namespace KSP_RemoteJoystick
             public Quaternion rotation;
             public double longitude;
             public double latitude;
+            public float altitudeSealevel;
+            public float altitudeRadar;
             //public bool SAS;
             //public bool RCS;
             //public bool brake;

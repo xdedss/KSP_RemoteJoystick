@@ -79,7 +79,7 @@ namespace KSP_RemoteJoystick
                 _socket.Bind(endPoint);
                 //5.0 设置最大连接数
                 _socket.Listen(int.MaxValue);
-                Debug.Log(string.Format("监听{0}消息成功", _socket.LocalEndPoint.ToString()));
+                Debug.Log(string.Format("listening at{0}", _socket.LocalEndPoint.ToString()));
                 //6.0 开始监听
                 _listenThread = new Thread(ListenClientConnect);
                 _listenThread.Start();
