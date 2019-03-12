@@ -59,6 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Ext.cs" />
+    <Compile Include="half.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RemoteJoystick.cs" />
     <Compile Include="SocketDataParser.cs" />

@@ -11,6 +11,7 @@ namespace KSP_RemoteJoystick
 
         public class ClientSideSocketData
         {
+            public ClientSideSocketData() { actions = new bool[10]; }
             public ClientSideSocketData(byte[] bytes)
             {
                 joystickL = new Vector2(((float)bytes[0]) / 255 * 2 - 1, ((float)bytes[1]) / 255 * 2 - 1);
@@ -38,7 +39,58 @@ namespace KSP_RemoteJoystick
                 light = (bytes[7] & ByteMask(5)) != 0;
                 gear = (bytes[7] & ByteMask(6)) != 0;
                 stage = (bytes[7] & ByteMask(7)) != 0;
+
+                byte controlFlags = bytes[8];
+                controlMode = (ControlMode)controlFlags;
             }
+            public byte[] ToBytes()
+            {
+                var j1 = (joystickL + Vector2.one) / 2 * 255;
+                var j2 = (joystickR + Vector2.one) / 2 * 255;
+                var throttleB = throttle * 255;
+                var steeringB = (steering + 1) / 2 * 255;
+                int controlFlags = (int)controlMode;
+                byte mask1 = 0;
+                byte mask2 = 0;
+                for (int i = 0; i < 8; i++)
+                {
+                    if (actions[i])
+                    {
+                        mask1 |= ByteMask(i);
+                    }
+                }
+                for (int i = 8; i < 10; i++)
+                {
+                    if (actions[i])
+                    {
+                        mask2 |= ByteMask(i - 8);
+                    }
+                }
+                if (SAS) mask2 |= ByteMask(2);
+                if (RCS) mask2 |= ByteMask(3);
+                if (brake) mask2 |= ByteMask(4);
+                if (light) mask2 |= ByteMask(5);
+                if (gear) mask2 |= ByteMask(6);
+                if (stage) mask2 |= ByteMask(7);
+                var bytes = new byte[]
+                {
+                    (byte)Mathf.RoundToInt(j1.x),
+                    (byte)Mathf.RoundToInt(j1.y),
+                    (byte)Mathf.RoundToInt(j2.x),
+                    (byte)Mathf.RoundToInt(j2.y),
+                    (byte)Mathf.RoundToInt(throttleB),
+                    (byte)Mathf.RoundToInt(steeringB),
+                    mask1,
+                    mask2,
+                    (byte)controlFlags,
+                };
+                return bytes;
+            }
+            public static implicit operator byte[](ClientSideSocketData data)
+            {
+                return data.ToBytes();
+            }
+            public ControlMode controlMode;
             public Vector2 joystickL;
             public Vector2 joystickR;
             public float throttle;
@@ -53,26 +105,22 @@ namespace KSP_RemoteJoystick
         }
         public class ServerSideSocketData
         {
-            public ServerSideSocketData()
+            public ServerSideSocketData() { }
+            public ServerSideSocketData(byte[] bytes)
             {
-
+                srfVel = new Vector3(BitConverter.ToSingle(bytes, 0), BitConverter.ToSingle(bytes, 4), BitConverter.ToSingle(bytes, 8));
+                var rotX = (float)BitConverter.ToUInt16(bytes, 12) / 65535 * 2 - 1;
+                var rotY = (float)BitConverter.ToUInt16(bytes, 14) / 65535 * 2 - 1;
+                var rotZ = (float)BitConverter.ToUInt16(bytes, 16) / 65535 * 2 - 1;
+                var rotW = (float)BitConverter.ToUInt16(bytes, 18) / 65535 * 2 - 1;
+                rotation = new Quaternion(rotX, rotY, rotZ, rotW);
+                longitude = (double)BitConverter.ToUInt32(bytes, 20) / uint.MaxValue * 360 - 180;
+                latitude = (double)BitConverter.ToUInt32(bytes, 24) / uint.MaxValue * 180 - 90;
+                altitudeSealevel = half.FromBytes(bytes, 28);//TODO: display altitude
+                altitudeRadar = half.FromBytes(bytes, 30);
             }
             public byte[] ToBytes()
             {
-                //var eulers = rotation.eulerAngles;
-                //var pitch = eulers.x;
-                //var roll = eulers.z;
-                //var hdg = eulers.y;
-
-                //var pitchs = (ushort)Math.Round((pitch + 90) / 180 * 65535);
-                //var rolls = (ushort)Math.Round((roll + 180) / 360 * 65535);
-                //var hdgs = (ushort)Math.Round(hdg / 360 * 65535);
-
-                //var pitchb = BitConverter.GetBytes(pitchs);
-                //var rollb = BitConverter.GetBytes(rolls);
-                //var hdgb = BitConverter.GetBytes(hdgs);
-                //var srfVelb = BitConverter.GetBytes(srfVel.magnitude);
-
                 var velX = BitConverter.GetBytes(srfVel.x);
                 var velY = BitConverter.GetBytes(srfVel.y);
                 var velZ = BitConverter.GetBytes(srfVel.z);
@@ -80,20 +128,13 @@ namespace KSP_RemoteJoystick
                 var rotY = BitConverter.GetBytes((ushort)Mathf.RoundToInt((rotation.y + 1) / 2 * 65535));
                 var rotZ = BitConverter.GetBytes((ushort)Mathf.RoundToInt((rotation.z + 1) / 2 * 65535));
                 var rotW = BitConverter.GetBytes((ushort)Mathf.RoundToInt((rotation.w + 1) / 2 * 65535));
-                //Debug.Log(string.Format("parsed{0}-X:{1}", rotation, Mathf.RoundToInt((rotation.x + 1) / 2 * 65535)));
-
+                
                 var lon = BitConverter.GetBytes((uint)Math.Round((longitude / 360 + 0.5) * uint.MaxValue));
                 var lat = BitConverter.GetBytes((uint)Math.Round((latitude / 180 + 0.5) * uint.MaxValue));
 
                 var altSL = ((half)altitudeSealevel).GetBytes();
                 var altR = ((half)altitudeRadar).GetBytes();
-
-                //byte flags = 0;
-                //if (SAS) flags |= ByteMask(0);
-                //if (RCS) flags |= ByteMask(1);
-                //if (brake) flags |= ByteMask(2);
-                //if (light) flags |= ByteMask(3);
-                //if (gear) flags |= ByteMask(4);
+                
                 return new byte[] {
                     velX[0], velX[1], velX[2], velX[3],//0-3
                     velY[0], velY[1], velY[2], velY[3],//4-7
@@ -104,7 +145,8 @@ namespace KSP_RemoteJoystick
                     rotW[0], rotW[1],//18 19
                     lon[0], lon[1], lon[2], lon[3],//20-23
                     lat[0], lat[1], lat[2], lat[3],//24-27
-                    
+                    altSL[0], altSL[1],//28 29
+                    altR[0], altR[1],//30 31
                 };
             }
             public static implicit operator byte[](ServerSideSocketData data)
@@ -117,18 +159,21 @@ namespace KSP_RemoteJoystick
             public double latitude;
             public float altitudeSealevel;
             public float altitudeRadar;
-            //public bool SAS;
-            //public bool RCS;
-            //public bool brake;
-            //public bool light;
-            //public bool gear;
         }
 
         public class ServerSideInitialData
         {
-            public ServerSideInitialData()
+            public ServerSideInitialData() { }
+            public ServerSideInitialData(byte[] bytes)
             {
-
+                var throttleValue = (float)bytes[0] / 255;
+                throttle = throttleValue;
+                SAS = (bytes[1] & ByteMask(0)) != 0;
+                RCS = (bytes[1] & ByteMask(1)) != 0;
+                brake = (bytes[1] & ByteMask(2)) != 0;
+                light = (bytes[1] & ByteMask(3)) != 0;
+                gear = (bytes[1] & ByteMask(4)) != 0;
+                stage = (bytes[1] & ByteMask(5)) != 0;
             }
             public byte[] ToBytes()
             {
@@ -153,6 +198,13 @@ namespace KSP_RemoteJoystick
             public bool light;
             public bool gear;
             public bool stage;
+        }
+
+        public enum ControlMode
+        {
+            Rotation = 0,
+            Docking = 1,
+            Rover = 2,
         }
 
         static byte ByteMask(int pos)

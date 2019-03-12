@@ -134,8 +134,6 @@ namespace KSP_RemoteJoystick
             {
                 var data = new SocketDataParser.ClientSideSocketData(server.dataReceived);
                 lastReceivedData = data;
-                //var vessel = FlightGlobals.ActiveVessel;
-                //vessel.ctrlState.pitch = data.joystickR.y;
             }
         }
 
