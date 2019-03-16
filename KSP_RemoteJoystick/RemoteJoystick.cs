@@ -1,10 +1,8 @@
 ﻿using KSP.UI.Screens;
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
+using SocketDataParser;
 
 namespace KSP_RemoteJoystick
 {
@@ -26,6 +24,9 @@ namespace KSP_RemoteJoystick
         Texture2D texWorking;
 
         bool stage_;
+        bool timeWarpMore_;
+        bool timeWarpLess_;
+        bool map_;
 
         void Start()
         {
@@ -94,6 +95,8 @@ namespace KSP_RemoteJoystick
                     actions.SetIfNot(group, value);
                 }
                 if (IsFlipped(ref stage_, lastReceivedData.stage)) StageManager.ActivateNextStage();
+                
+                //CameraManager.Instance.SetCameraIVA();
             }
         }
 
@@ -118,6 +121,20 @@ namespace KSP_RemoteJoystick
                     targetVessel.OnFlyByWire += OnFlyByWire;
                 }
             }
+
+            if (IsFlipped(ref timeWarpMore_, lastReceivedData.timeWarpMore))
+            {
+                TimeWarp.SetRate(TimeWarp.CurrentRateIndex + 1, false);
+            }
+            if (IsFlipped(ref timeWarpLess_, lastReceivedData.timeWarpLess))
+            {
+                TimeWarp.SetRate(TimeWarp.CurrentRateIndex - 1, false);
+            }
+            if (IsFlipped(ref map_, lastReceivedData.map))
+            {
+                if (MapView.MapIsEnabled) MapView.ExitMapView();
+                else MapView.EnterMapView();
+            }
         }
 
         void FixedUpdate()
@@ -132,14 +149,14 @@ namespace KSP_RemoteJoystick
         {
             if (server.listening && server.dataReceived.Length > 0)
             {
-                var data = new SocketDataParser.ClientSideSocketData(server.dataReceived);
+                var data = new ClientSideSocketData(server.dataReceived);
                 lastReceivedData = data;
             }
         }
 
         void UpdateDataToSend()
         {
-            var data = new SocketDataParser.ServerSideSocketData();
+            var data = new ServerSideSocketData();
             if (targetVessel != null)
             {
                 data.longitude = targetVessel.longitude;
@@ -155,6 +172,8 @@ namespace KSP_RemoteJoystick
                 var trueUp = falseRotation * new Vector3(0, 0, -1);
                 data.rotation = Quaternion.LookRotation(trueForward, trueUp);
                 data.srfVel = rotationRefInv * targetVessel.srf_velocity;
+                data.altitudeRadar = (float)targetVessel.radarAltitude;
+                data.altitudeSealevel = (float)targetVessel.altitude;
             }
 
             server.dataToSend = data;
@@ -162,7 +181,7 @@ namespace KSP_RemoteJoystick
 
         void UpdateInitialData()
         {
-            var data = new SocketDataParser.ServerSideInitialData();
+            var data = new ServerSideInitialData();
             data.SAS = targetVessel.ActionGroups.GetGroup(KSPActionGroup.SAS);
             data.RCS = targetVessel.ActionGroups.GetGroup(KSPActionGroup.RCS);
             data.brake = targetVessel.ActionGroups.GetGroup(KSPActionGroup.Brakes);
