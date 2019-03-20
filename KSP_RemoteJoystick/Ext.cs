@@ -17,7 +17,7 @@ namespace KSP_RemoteJoystick
         {
             if(actions.GetGroup(group) ^ value)
             {
-                actions.SetGroup(group, value);
+                actions.ToggleGroup(group);
                 return true;
             }
             return false;

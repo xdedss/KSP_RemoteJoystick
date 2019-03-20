@@ -181,14 +181,21 @@ namespace KSP_RemoteJoystick
 
         void UpdateInitialData()
         {
-            var data = new ServerSideInitialData();
+            var data = new ClientSideSocketData();
             data.SAS = targetVessel.ActionGroups.GetGroup(KSPActionGroup.SAS);
             data.RCS = targetVessel.ActionGroups.GetGroup(KSPActionGroup.RCS);
             data.brake = targetVessel.ActionGroups.GetGroup(KSPActionGroup.Brakes);
             data.light = targetVessel.ActionGroups.GetGroup(KSPActionGroup.Light);
             data.gear = targetVessel.ActionGroups.GetGroup(KSPActionGroup.Gear);
+            data.abort = targetVessel.ActionGroups.GetGroup(KSPActionGroup.Abort);
             data.throttle = targetVessel.ctrlState.mainThrottle;
             data.stage = stage_;
+            data.timeWarpMore = timeWarpMore_;
+            data.timeWarpLess = timeWarpLess_;
+            data.map = map_;
+            for(int i = 0; i < 10; i++) {
+                data.actions[i] = targetVessel.ActionGroups.GetGroup((KSPActionGroup)(1 << (i + 6)));
+            }
             server.initialData = data;
         }
 
@@ -214,18 +221,18 @@ namespace KSP_RemoteJoystick
         {
             isOn = !isOn;
             CheckStatus();
-            ScreenMessages.PostScreenMessage("RemoteJoystick " + (isOn ? "enabled at " + port : "disabled"), 1f, ScreenMessageStyle.UPPER_CENTER);
+            ScreenMessages.PostScreenMessage("RemoteJoystick " + (isOn ? "enabled at " + port : "disabled"), 3f, ScreenMessageStyle.UPPER_CENTER);
         }
 
         void Enabled()
         {
-            //ScreenMessages.PostScreenMessage("RJ ui enabled", 3f, ScreenMessageStyle.UPPER_CENTER);
+            RemoteJoystickUI.showUI = false;
             ScreenMessages.PostScreenMessage("Rightclick to toggle", 5f, ScreenMessageStyle.UPPER_CENTER);
         }
 
         void Disabled()
         {
-            //ScreenMessages.PostScreenMessage("RJ ui disabled", 3f, ScreenMessageStyle.UPPER_CENTER);
+            RemoteJoystickUI.showUI = false;
             ScreenMessages.PostScreenMessage("Rightclick to toggle", 5f, ScreenMessageStyle.UPPER_CENTER);
         }
 
