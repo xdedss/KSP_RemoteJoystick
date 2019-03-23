@@ -9,7 +9,8 @@ namespace KSP_RemoteJoystick
     [KSPAddon(KSPAddon.Startup.Flight, false)]
     class RemoteJoystick : MonoBehaviour
     {
-        static bool isOn;
+        public static bool isOn;
+        public static RemoteJoystick instance;
 
         static bool HasAddedButton;
         static ApplicationLauncherButton launcherButton;
@@ -27,6 +28,11 @@ namespace KSP_RemoteJoystick
         bool timeWarpMore_;
         bool timeWarpLess_;
         bool map_;
+
+        void Awake()
+        {
+            instance = this;
+        }
 
         void Start()
         {
@@ -122,18 +128,21 @@ namespace KSP_RemoteJoystick
                 }
             }
 
-            if (IsFlipped(ref timeWarpMore_, lastReceivedData.timeWarpMore))
+            if (isOn && server.hasClient && lastReceivedData != null)
             {
-                TimeWarp.SetRate(TimeWarp.CurrentRateIndex + 1, false);
-            }
-            if (IsFlipped(ref timeWarpLess_, lastReceivedData.timeWarpLess))
-            {
-                TimeWarp.SetRate(TimeWarp.CurrentRateIndex - 1, false);
-            }
-            if (IsFlipped(ref map_, lastReceivedData.map))
-            {
-                if (MapView.MapIsEnabled) MapView.ExitMapView();
-                else MapView.EnterMapView();
+                if (IsFlipped(ref timeWarpMore_, lastReceivedData.timeWarpMore))
+                {
+                    TimeWarp.SetRate(TimeWarp.CurrentRateIndex + 1, false);
+                }
+                if (IsFlipped(ref timeWarpLess_, lastReceivedData.timeWarpLess))
+                {
+                    TimeWarp.SetRate(TimeWarp.CurrentRateIndex - 1, false);
+                }
+                if (IsFlipped(ref map_, lastReceivedData.map))
+                {
+                    if (MapView.MapIsEnabled) MapView.ExitMapView();
+                    else MapView.EnterMapView();
+                }
             }
         }
 
@@ -217,16 +226,21 @@ namespace KSP_RemoteJoystick
             launcherButton.SetTexture(isOn ? server.hasClient ? texWorking : texWaiting : texIdle);
         }
 
-        void RightClick()
+        public void Toggle()
         {
             isOn = !isOn;
             CheckStatus();
             ScreenMessages.PostScreenMessage("RemoteJoystick " + (isOn ? "enabled at " + port : "disabled"), 3f, ScreenMessageStyle.UPPER_CENTER);
         }
 
+        void RightClick()
+        {
+            Toggle();
+        }
+
         void Enabled()
         {
-            RemoteJoystickUI.showUI = false;
+            RemoteJoystickUI.showUI = true;
             ScreenMessages.PostScreenMessage("Rightclick to toggle", 5f, ScreenMessageStyle.UPPER_CENTER);
         }
 

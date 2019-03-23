@@ -11,6 +11,8 @@ namespace KSP_RemoteJoystick
     {
         //todo : add ui
         public static bool showUI = false;
+        public static string[] inputModes = { "Auto", "OnAutopilot", "OnFlyByWire" };
+        public static int inputMode = 0;
 
         public Rect windowRect;
 
@@ -41,9 +43,23 @@ namespace KSP_RemoteJoystick
 
             GUI.DragWindow();
 
-            GUI.Label(new Rect(current, regularSize), "test");
+            if (GUI.Button(new Rect(current, regularSize), RemoteJoystick.isOn ? "Stop Server" : "Start Server"))
+            {
+                RemoteJoystick.instance.Toggle();
+            }
             current += interval;
-            GUI.Button(new Rect(current, regularSize), "testbutton");
+            current += interval;
+
+            GUI.Label(new Rect(current, regularSize), "Input Mode");
+            current += interval;
+            if (GUI.Button(new Rect(current, regularSize), inputModes[inputMode]))
+            {
+                inputMode++;
+                if(inputMode >= inputModes.Length)
+                {
+                    inputMode = 0;
+                }
+            }
             current += interval;
 
             windowRect.height = current.y + paddings.y;
