@@ -11,6 +11,8 @@ namespace KSP_RemoteJoystick
     {
         public static bool isOn;
         public static RemoteJoystick instance;
+        public bool IsOn => isOn;
+        public RemoteJoystickUI ui;
 
         static bool HasAddedButton;
         static ApplicationLauncherButton launcherButton;
@@ -36,6 +38,8 @@ namespace KSP_RemoteJoystick
 
         void Start()
         {
+            ui = gameObject.AddComponent<RemoteJoystickUI>();
+
             texIdle = GameDatabase.Instance.GetTexture("RemoteJoystick/Textures/icon_idle", false);
             texWaiting = GameDatabase.Instance.GetTexture("RemoteJoystick/Textures/icon_waiting", false);
             texWorking = GameDatabase.Instance.GetTexture("RemoteJoystick/Textures/icon_working", false);
@@ -240,13 +244,13 @@ namespace KSP_RemoteJoystick
 
         void Enabled()
         {
-            RemoteJoystickUI.showUI = true;
+            ui.showUI = true;
             ScreenMessages.PostScreenMessage("Rightclick to toggle", 5f, ScreenMessageStyle.UPPER_CENTER);
         }
 
         void Disabled()
         {
-            RemoteJoystickUI.showUI = false;
+            ui.showUI = false;
             ScreenMessages.PostScreenMessage("Rightclick to toggle", 5f, ScreenMessageStyle.UPPER_CENTER);
         }
 

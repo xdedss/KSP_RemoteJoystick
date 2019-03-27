@@ -6,13 +6,13 @@ using UnityEngine;
 
 namespace KSP_RemoteJoystick
 {
-    [KSPAddon(KSPAddon.Startup.Flight, false)]
     class RemoteJoystickUI : MonoBehaviour
     {
         //todo : add ui
-        public static bool showUI = false;
-        public static string[] inputModes = { "Auto", "OnAutopilot", "OnFlyByWire" };
-        public static int inputMode = 0;
+        public bool showUI = false;
+        public string[] inputModes = { "Auto", "OnAutopilot", "OnFlyByWire" };
+        public int inputMode = 0;
+        public RemoteJoystick mod;
 
         public Rect windowRect;
 
@@ -32,7 +32,10 @@ namespace KSP_RemoteJoystick
 
         public void OnGUI()
         {
-            GUI.Window(233333 ^ 63243652, windowRect, Window, "Remote Joystick");
+            if (showUI)
+            {
+                windowRect = GUI.Window(233333 ^ 63243652, windowRect, Window, "Remote Joystick");
+            }
         }
 
         public void Window(int wid)
@@ -41,11 +44,11 @@ namespace KSP_RemoteJoystick
             Vector2 interval = new Vector2(0, regularSize.y + space);
             Vector2 current = paddings + new Vector2(0, 20);
 
-            GUI.DragWindow();
+            GUI.DragWindow(new Rect(0, 0, windowRect.x, 20));
 
-            if (GUI.Button(new Rect(current, regularSize), RemoteJoystick.isOn ? "Stop Server" : "Start Server"))
+            if (GUI.Button(new Rect(current, regularSize), mod.IsOn ? "Stop Server" : "Start Server"))
             {
-                RemoteJoystick.instance.Toggle();
+                mod.Toggle();
             }
             current += interval;
             current += interval;
