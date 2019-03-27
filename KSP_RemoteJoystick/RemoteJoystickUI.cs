@@ -11,6 +11,9 @@ namespace KSP_RemoteJoystick
         //todo : add ui
         public bool showUI = false;
         public string[] inputModes = { "Auto", "OnAutopilot", "OnFlyByWire" };
+        public bool AutoControl => inputMode == 0;
+        public bool OnAutopilotControl => inputMode == 1;
+        public bool OnFlyByWireControl => inputMode == 2;
         public int inputMode = 0;
         public RemoteJoystick mod;
 

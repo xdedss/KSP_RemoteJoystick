@@ -39,6 +39,7 @@ namespace KSP_RemoteJoystick
         void Start()
         {
             ui = gameObject.AddComponent<RemoteJoystickUI>();
+            ui.mod = this;
 
             texIdle = GameDatabase.Instance.GetTexture("RemoteJoystick/Textures/icon_idle", false);
             texWaiting = GameDatabase.Instance.GetTexture("RemoteJoystick/Textures/icon_waiting", false);
@@ -68,14 +69,15 @@ namespace KSP_RemoteJoystick
 
         void OnAutopilot(FlightCtrlState s)
         {
-            if (!targetVessel.ActionGroups.GetGroup(KSPActionGroup.SAS)) {
+            if ((!targetVessel.ActionGroups.GetGroup(KSPActionGroup.SAS) && ui.AutoControl) || ui.OnAutopilotControl)
+            {
                 ApplyControl(s);
             }
         }
 
         void OnFlyByWire(FlightCtrlState s)
         {
-            if (targetVessel.ActionGroups.GetGroup(KSPActionGroup.SAS))
+            if ((targetVessel.ActionGroups.GetGroup(KSPActionGroup.SAS) && ui.AutoControl) || ui.OnFlyByWireControl)
             {
                 ApplyControl(s);
             }
