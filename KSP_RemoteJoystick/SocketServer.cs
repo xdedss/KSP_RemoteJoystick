@@ -44,6 +44,11 @@ namespace KSP_RemoteJoystick
             this._port = port;
         }
 
+        public void SetPort(ushort port)
+        {
+            _port = port;
+        }
+
         public void Close()
         {
             if (!listening)

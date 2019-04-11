@@ -218,6 +218,7 @@ namespace KSP_RemoteJoystick
         {
             if (isOn)
             {
+                server.SetPort(ui.port);
                 server.StartListen();
             }
             else

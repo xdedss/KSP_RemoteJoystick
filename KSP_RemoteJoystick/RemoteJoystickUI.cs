@@ -15,6 +15,9 @@ namespace KSP_RemoteJoystick
         public bool OnAutopilotControl => inputMode == 1;
         public bool OnFlyByWireControl => inputMode == 2;
         public int inputMode = 0;
+        public ushort port = 23333;
+        string portStr = "23333";
+        bool validPort;
         public RemoteJoystick mod;
 
         public Rect windowRect;
@@ -56,7 +59,21 @@ namespace KSP_RemoteJoystick
             current += interval;
             current += interval;
 
-            GUI.Label(new Rect(current, regularSize), "Input Mode");
+            GUI.Label(new Rect(current, regularSize), validPort ? "port:" : "port: (Invalid!)");
+            current += interval;
+            if (mod.IsOn)
+            {
+                GUI.Label(new Rect(current, regularSize), port.ToString());
+                current += interval;
+            }
+            else
+            {
+                portStr = GUI.TextField(new Rect(current, regularSize), portStr);
+                validPort = ushort.TryParse(portStr, out port);
+                current += interval;
+            }
+
+            GUI.Label(new Rect(current, regularSize), "Input Mode:");
             current += interval;
             if (GUI.Button(new Rect(current, regularSize), inputModes[inputMode]))
             {
