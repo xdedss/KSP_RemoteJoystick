@@ -46,6 +46,7 @@ namespace KSP_RemoteJoystick
             texWorking = GameDatabase.Instance.GetTexture("RemoteJoystick/Textures/icon_working", false);
             if (!HasAddedButton)
             {
+                Debug.Log("RemoteJoystick adding button");
                 launcherButton = ApplicationLauncher.Instance.AddModApplication(Enabled, Disabled, null, null, null, null,
                     ApplicationLauncher.AppScenes.FLIGHT, texIdle);
                 launcherButton.onRightClick = RightClick;

@@ -123,9 +123,11 @@ namespace KSP_RemoteJoystick
 
 
                                     //如果收到了就发送回信，客户端控制频率
+                                    //Debug.Log("received: sending " + (dataToSend== null ? "null" : dataToSend.Length.ToString()));
                                     if (dataToSend != null && dataToSend.Length > 0)
                                     {
                                         clientSocket.client.Send(dataToSend);
+                                        //Debug.Log("send");
                                     }
                                 }
                                 else

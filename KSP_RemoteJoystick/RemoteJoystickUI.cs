@@ -17,7 +17,7 @@ namespace KSP_RemoteJoystick
         public int inputMode = 0;
         public ushort port = 23333;
         string portStr = "23333";
-        bool validPort;
+        bool validPort = true;
         public RemoteJoystick mod;
 
         public Rect windowRect;
